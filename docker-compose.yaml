@@ -1,33 +1,35 @@
 services:
-  app:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    image: platform-b
-    container_name: platform_b_container
-    ports:
-      - "8000:80"
-    volumes:
-      - ./src:/app/src
-      - ./templates:/app/templates
-      - ./public:/app/public
-      - ./var:/app/var
+  mysql:
+    image: mysql:8.0
+    restart: unless-stopped
     environment:
-      DATABASE_URL: "mysql://${MYSQL_USER}:${MYSQL_PASSWORD}@db:3312/${MYSQL_DATABASE}?serverVersion=8.0.32&charset=utf8mb4"
-      APP_ENV: prod
-      APP_DEBUG: "false"
-    depends_on:
-      db:
-        condition: service_healthy
+      MYSQL_ROOT_PASSWORD: dimagnaong
+      MYSQL_DATABASE: Dramatique_DB
+      MYSQL_USER: darllexie
+      MYSQL_PASSWORD: dramatique
+    ports:
+      - "3312:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
     networks:
-      - platform-network
-    healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost/" ]
-      interval: 10s
-      timeout: 5s
-      retries: 3
-      start_period: 10s
+      - darl_network
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    restart: unless-stopped
+    environment:
+      PMA_HOST: ${PMA_HOST:-mysql}
+      PMA_USER: darllexie
+      PMA_PASSWORD: dramatique
+    ports:
+      - "8080:80"
+    depends_on:
+      - mysql
+    networks:
+      - darl_network
+
+volumes:
+  mysql_data:
 
 networks:
-  platform-network:
-    driver: bridge
+  darl_network:
