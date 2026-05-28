@@ -1,0 +1,572 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}DRAMATIQUE{% endblock %}
+
+{% block stylesheets %}
+    <link rel="stylesheet" href="https://cdn.datatables.net/2.3.5/css/dataTables.dataTables.min.css">
+    <style>
+            font-size: 12px;
+            letter-spacing: 0.8px;
+            padding: 18px 20px;
+            border-bottom: 2px solid var(--border-color);
+            color: var(--text-dark);
+        }
+
+        #productsTable tbody td {
+            padding: 16px 20px;
+            vertical-align: middle;
+            border-bottom: 1px solid rgba(224, 224, 224, 0.5);
+            font-size: 14px;
+        }
+
+        #productsTable tbody tr {
+            transition: all 0.2s ease;
+        }
+
+        #productsTable tbody tr:hover {
+            background-color: rgba(102, 45, 145, 0.04);
+        }
+
+        #productsTable tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        /* ================================
+           Product Image Styling
+           ================================ */
+        .product-image-thumbnail {
+            width: 60px;
+            height: 60px;
+            object-fit: cover;
+            border-radius: 8px;
+            border: 2px solid var(--border-color);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .no-image {
+            color: #999;
+            font-style: italic;
+            font-size: 12px;
+        }
+
+        /* ================================
+           Action Buttons Section
+           ================================ */
+        .action-buttons-container {
+            display: flex;
+            gap: 12px;
+            margin-top: 32px;
+            padding-top: 24px;
+            border-top: 2px solid var(--border-color);
+        }
+
+        .history-section {
+            margin-top: 28px;
+        }
+
+        .history-section-header {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            margin-bottom: 16px;
+        }
+
+        .history-section-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--text-dark);
+            margin: 0;
+        }
+
+        .history-section-subtitle {
+            color: var(--text-light);
+            font-size: 14px;
+            margin: 0;
+        }
+
+        .history-table-container {
+            margin-top: 16px;
+        }
+
+        #productHistoryTable thead th {
+            background: linear-gradient(to bottom, #fafafa 0%, #f5f5f5 100%);
+            font-weight: 700;
+            text-transform: uppercase;
+            font-size: 12px;
+            letter-spacing: 0.8px;
+            padding: 16px 18px;
+            border-bottom: 2px solid var(--border-color);
+            color: var(--text-dark);
+        }
+
+        #productHistoryTable tbody td {
+            padding: 15px 18px;
+            vertical-align: middle;
+            border-bottom: 1px solid rgba(224, 224, 224, 0.5);
+            font-size: 14px;
+        }
+
+        #productHistoryTable tbody tr:hover {
+            background-color: rgba(102, 45, 145, 0.04);
+        }
+
+        .history-empty-state {
+            padding: 18px;
+            color: var(--text-light);
+            font-style: italic;
+            text-align: center;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-light) 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            font-size: 15px;
+            font-weight: 600;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(102, 45, 145, 0.3);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+                /* card visual: colored top, image overlaps into white body */
+                .shop-card { position: relative; background: var(--bg-white); border-radius: 12px; overflow: visible; box-shadow: 0 12px 30px rgba(19,19,19,0.06); display: flex; flex-direction: column; }
+
+                .shop-card-top { position: relative; border-top-left-radius: 12px; border-top-right-radius: 12px; overflow: hidden; }
+                .shop-card-image { height: 200px; background: linear-gradient(135deg, rgba(102,45,145,0.12), rgba(139,75,196,0.08)); display:flex; align-items:center; justify-content:center; }
+                .shop-card-image img { max-width: 88%; max-height: 170px; object-fit: contain; border-radius: 8px; transform: translateY(8px); transition: transform 0.35s ease; }
+                .shop-card:hover .shop-card-image img { transform: translateY(6px) scale(1.02); }
+
+                .shop-card-badge { position: absolute; left: 14px; top: 12px; background: rgba(255,255,255,0.14); color: #fff; padding: 6px 10px; border-radius: 999px; font-weight: 700; font-size: 12px; backdrop-filter: blur(4px); }
+
+                .shop-card-body { padding: 18px 18px 20px; display: flex; flex-direction: column; gap: 8px; align-items: flex-start; text-align: left; }
+                .shop-card-meta { font-size:12px; color:var(--text-light); }
+                .shop-card-title { font-size: 18px; color:var(--text-dark); margin-top:6px; font-weight:800; }
+                .shop-card-subtitle { color:var(--text-light); font-size:13px; }
+                .shop-card-desc { color:var(--text-light); font-size:13px; margin:6px 0 0 0; }
+
+                .shop-card-footer { display:flex; width:100%; justify-content:space-between; align-items:center; gap:12px; margin-top:12px; }
+                .shop-price-pill { background: #fff; border-radius: 18px; padding:8px 12px; box-shadow: 0 8px 20px rgba(0,0,0,0.06); font-weight:700; color:var(--text-dark); }
+                .btn-order { background: #111; color: #fff; padding:10px 18px; border-radius:24px; text-decoration:none; display:inline-flex; align-items:center; gap:10px; box-shadow: 0 10px 26px rgba(0,0,0,0.12); }
+
+                .shop-pagination { margin-top: 28px; display:flex; justify-content:center; }
+                .shop-pagination ul { list-style:none; display:flex; gap:8px; padding:0; margin:0; }
+                .shop-pagination a { display:inline-flex; align-items:center; justify-content:center; min-width:36px; height:36px; border-radius:8px; text-decoration:none; color:var(--text-dark); border:1px solid var(--border-color); padding:0 10px; }
+                .shop-pagination li.active a { background:var(--primary-color); color:white; border-color:var(--primary-color); }
+            box-shadow: 0 8px 20px rgba(102, 45, 145, 0.4);
+        }
+
+        .btn-primary:active {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(102, 45, 145, 0.3);
+        }
+
+        /* ================================
+           Responsive Adjustments
+           ================================ */
+        @media (max-width: 768px) {
+            .custom-table-controls-top,
+            .custom-table-controls-bottom {
+                flex-direction: column;
+                gap: 16px;
+                align-items: stretch;
+            }
+
+            .entries-control,
+            .search-control {
+                width: 100%;
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .search-control input,
+            .entries-control select {
+                width: 100%;
+                min-width: 100%;
+            }
+
+            .pagination-control {
+                justify-content: center;
+                flex-wrap: wrap;
+            }
+
+            .pagination-control button {
+                min-width: 40px;
+                height: 40px;
+                padding: 8px 12px;
+                font-size: 13px;
+            }
+
+            .action-buttons-container {
+                flex-direction: column;
+            }
+
+            .btn-primary {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+    </style>
+{% endblock %}
+
+{% block body %}
+    {% if is_granted('ROLE_ADMIN') or is_granted('ROLE_STAFF') %}
+        <!-- Top Controls: Entries & Search (OUTSIDE WHITE BOX) -->
+        <div class="custom-table-controls-top">
+            <div class="entries-control">
+                <label for="entriesSelect">Show</label>
+                <select id="entriesSelect">
+                    <option value="10">10</option>
+                    <option value="25">25</option>
+                    <option value="50">50</option>
+                    <option value="100">100</option>
+                </select>
+                <span>entries</span>
+            </div>
+            <div class="search-control">
+                <label for="searchInput">Search:</label>
+                <input type="text" id="searchInput" placeholder="Search products...">
+            </div>
+        </div>
+
+        <!-- Table Container (WHITE BOX - ONLY TABLE) -->
+        <div class="table-container">
+            <div class="table-wrapper-inner">
+                <table id="productsTable" class="table display">
+                    <thead>
+                        <tr>
+                            <th>Image</th>
+                            <th>Name</th>
+                            <th>Price</th>
+                            <th>Description</th>
+                            <th style="text-align: center; width: 200px;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    {% for product in products %}
+                        <tr>
+                            <td>
+                                {% if product.image %}
+                                    <img src="{{ product.image }}" alt="{{ product.name }}" class="product-image-thumbnail">
+                                {% else %}
+                                    <span class="no-image">No image</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ product.name }}</td>
+                            <td>₱{{ product.price|number_format(2, '.', ',') }}</td>
+                            <td>{{ product.description }}</td>
+                            <td style="text-align: center; white-space: nowrap;">
+                                <a href="{{ path('app_products_show', {'id': product.id}) }}" class="action-link">
+                                    <i class="fas fa-eye"></i> Show
+                                </a>
+                                {% set isOwner = product.getCreatedBy() and app.user and product.getCreatedBy().getId() == app.user.getId() %}
+                                {% if is_granted('ROLE_ADMIN') or is_granted('ROLE_STAFF') or isOwner %}
+                                    <a href="{{ path('app_products_edit', {'id': product.id}) }}" class="action-link">
+                                        <i class="fas fa-edit"></i> Edit
+                                    </a>
+                                    {{ include('products/_delete_form.html.twig') }}
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Bottom Controls: Info & Pagination (OUTSIDE WHITE BOX) -->
+        <div class="custom-table-controls-bottom">
+            <div class="info-control" id="tableInfo">
+                Showing 1 to {{ products|length }} of {{ products|length }} products
+            </div>
+            <div class="pagination-control" id="paginationButtons">
+                <button id="btnFirst">First</button>
+                <button id="btnPrevious">Previous</button>
+                <button class="active">1</button>
+                <button id="btnNext">Next</button>
+                <button id="btnLast">Last</button>
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="action-buttons-container">
+            <a href="{{ path('app_products_new') }}" class="btn btn-primary">
+                <i class="fas fa-plus"></i> Create new
+            </a>
+        </div>
+
+        <div class="history-section">
+            <div class="history-section-header">
+                <h3 class="history-section-title">Product Addition History</h3>
+                <p class="history-section-subtitle">Recent product creation activity captured from the system audit log.</p>
+            </div>
+
+            <div class="table-container history-table-container">
+                <div class="table-wrapper-inner">
+                    <table id="productHistoryTable" class="table display">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Product</th>
+                                <th>Action</th>
+                                <th>Added By</th>
+                                <th>Details</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        {% for log in productAdditionHistory %}
+                            {% set productLabel = log.target|replace({'Products': ''})|trim %}
+                            <tr>
+                                <td>{{ log.createdAt ? log.createdAt|date('M d, Y H:i') : 'N/A' }}</td>
+                                <td>{{ productLabel ?: log.target }}</td>
+                                <td>{{ log.action }}</td>
+                                <td>{{ log.username ?: 'System' }}</td>
+                                <td>{{ log.target }}</td>
+                            </tr>
+                        {% else %}
+                            <tr>
+                                <td colspan="5" class="history-empty-state">No product additions have been recorded yet.</td>
+                            </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    {% else %}
+        <div class="shop-hero">
+            <h2>Shop the catalog</h2>
+            <form method="get" class="shop-controls" style="margin-top:12px; display:flex; gap:12px; align-items:center;">
+                <input type="hidden" name="category" value="{{ selectedCategory|default('') }}">
+                <label for="sortSelect" style="font-weight:600; color:var(--text-light); font-size:13px;">Sort by</label>
+                <select id="sortSelect" name="sort" onchange="this.form.submit()" style="padding:8px 12px; border-radius:8px; border:1px solid var(--border-color);">
+                    <option value="default" {{ sort == 'default' ? 'selected' : '' }}>Default</option>
+                    <option value="price_desc" {{ sort == 'price_desc' ? 'selected' : '' }}>Price: High &uarr;</option>
+                    <option value="price_asc" {{ sort == 'price_asc' ? 'selected' : '' }}>Price: Low &darr;</option>
+                </select>
+            </form>
+        </div>
+
+        <div class="shop-container">
+            <div class="shop-grid">
+                {% for product in products %}
+                    
+                            <div class="shop-card-top">
+                                {% if product.image %}
+                                    <div class="shop-card-image">
+                                        <img src="{{ product.image }}" alt="{{ product.name }}">
+                                    </div>
+                                {% else %}
+                                    <div class="shop-card-image shop-card-placeholder">No image</div>
+                                {% endif %}
+
+                                {# small top badges: bestseller / brand #}
+                                <div class="shop-card-badge">Best Seller</div>
+                            </div>
+
+                            <div class="shop-card-body">
+                                <div class="shop-card-meta">{{ product.collectionType ?: '' }}</div>
+                                <h3 class="shop-card-title">{{ product.name }}</h3>
+                                <div class="shop-card-subtitle">{{ product.description ? (product.description|raw)|striptags|slice(0,60) : '' }}</div>
+                                <p class="shop-card-desc">{{ product.description ?: '' }}</p>
+
+                                <div class="shop-card-footer">
+                                    <div class="shop-price-pill">₱{{ product.price|number_format(2, '.', ',') }}</div>
+                                    <a href="{{ path('app_cart_add', {'id': product.id}) }}" class="btn-order js-add-to-cart" data-add-url="{{ path('app_cart_add', {'id': product.id}) }}" data-product-id="{{ product.id }}">
+                                        Buy Now <i class="fas fa-arrow-right"></i>
+                                    </a>
+                                </div>
+                            </div>
+                        </article>
+                {% endfor %}
+            </div>
+        </div>
+        <style>
+            /* container and grid */
+            .shop-container { max-width: 1100px; margin: 0 auto; padding: 18px 16px 48px; }
+            .shop-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 22px; }
+
+            /* card visual */
+            .shop-card { position: relative; background: var(--bg-white); border-radius: 14px; overflow: hidden; box-shadow: 0 8px 28px rgba(19,19,19,0.06); display: flex; flex-direction: column; }
+            /* image container shows the whole image with padding and background, not cropped */
+            .shop-card-image { background: linear-gradient(180deg,#fbfbfb,#fff); padding: 18px; display: flex; align-items: center; justify-content: center; border-bottom: 1px solid rgba(224,224,224,0.6); }
+            .shop-card-image img { max-width: 100%; max-height: 180px; width: auto; height: auto; object-fit: contain; display: block; transition: transform 0.35s ease; }
+            .shop-card:hover .shop-card-image img { transform: scale(1.02); }
+
+            .shop-card-badge { position: absolute; left: 16px; top: 12px; background: linear-gradient(135deg,var(--primary-color),var(--primary-light)); color: #fff; padding: 6px 10px; border-radius: 999px; font-weight: 700; font-size: 13px; box-shadow: 0 6px 16px rgba(102,45,145,0.18); }
+
+            .shop-card-body { padding: 14px 16px 18px; display: flex; flex-direction: column; gap: 8px; }
+            .shop-card-meta { display:flex; justify-content:space-between; align-items:center; gap:8px; font-size:12px; color:var(--text-light); }
+            .shop-card-title { font-size: 15px; color:var(--text-dark); margin-top:4px; }
+            .shop-card-description { color:var(--text-light); font-size:13px; min-height:36px; }
+
+            .shop-card-price-row { display:flex; gap:8px; align-items:baseline; }
+            .shop-card-price { font-size: 18px; font-weight:700; color:var(--primary-color); }
+            .shop-card-price-old { color:#999; text-decoration:line-through; font-size:13px; }
+
+            .shop-card-actions { display:flex; gap:10px; margin-top:8px; }
+            .btn-shop, .btn-order { display:inline-flex; align-items:center; gap:8px; padding:8px 12px; border-radius:10px; text-decoration:none; font-weight:600; }
+            .btn-shop { background: #fff; border:1px solid var(--border-color); color:var(--text-dark); }
+            .btn-order { background: linear-gradient(135deg,var(--primary-color),var(--primary-light)); color:#fff; box-shadow:0 8px 20px rgba(102,45,145,0.18); }
+
+            .shop-pagination { margin-top: 28px; display:flex; justify-content:center; }
+            .shop-pagination ul { list-style:none; display:flex; gap:8px; padding:0; margin:0; }
+            .shop-pagination a { display:inline-flex; align-items:center; justify-content:center; min-width:36px; height:36px; border-radius:8px; text-decoration:none; color:var(--text-dark); border:1px solid var(--border-color); padding:0 10px; }
+            .shop-pagination li.active a { background:var(--primary-color); color:white; border-color:var(--primary-color); }
+
+            @media (max-width: 800px) {
+                .shop-container { padding: 12px; }
+                .shop-card-image { padding: 14px; }
+                .shop-card-image img { max-height: 140px; }
+            }
+        </style>
+    {% endif %}
+{% endblock %}
+
+{% block javascripts %}
+    {% if is_granted('ROLE_ADMIN') or is_granted('ROLE_STAFF') %}
+        <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+        <script src="https://cdn.datatables.net/2.3.5/js/dataTables.min.js"></script>
+        <script>
+            $(document).ready(function() {
+                const table = $('#productsTable').DataTable({
+                    "paging": true,
+                    "searching": true,
+                    "ordering": false,
+                    "info": false,
+                    "lengthChange": false,
+                    "pageLength": 10,
+                    "dom": 't',
+                    "language": {
+                        "zeroRecords": "No records found"
+                    }
+                });
+
+                $('#entriesSelect').on('change', function() {
+                    table.page.len(parseInt(this.value)).draw();
+                    updateInfo();
+                });
+
+                $('#searchInput').on('keyup', function() {
+                    table.search(this.value).draw();
+                    updateInfo();
+                });
+
+                $('#btnFirst').on('click', function() {
+                    table.page('first').draw('page');
+                    updateInfo();
+                });
+
+                $('#btnPrevious').on('click', function() {
+                    table.page('previous').draw('page');
+                    updateInfo();
+                });
+
+                $('#btnNext').on('click', function() {
+                    table.page('next').draw('page');
+                    updateInfo();
+                });
+
+                $('#btnLast').on('click', function() {
+                    table.page('last').draw('page');
+                    updateInfo();
+                });
+
+                function updateInfo() {
+                    const info = table.page.info();
+                    const infoText = info.recordsDisplay === 0 
+                        ? 'No products available'
+                        : `Showing ${info.start + 1} to ${info.end} of ${info.recordsDisplay} products${info.recordsTotal !== info.recordsDisplay ? ' (filtered from ' + info.recordsTotal + ' total products)' : ''}`;
+                    $('#tableInfo').text(infoText);
+
+                    $('#btnFirst, #btnPrevious').prop('disabled', info.page === 0);
+                    $('#btnNext, #btnLast').prop('disabled', info.page === info.pages - 1);
+                }
+
+                updateInfo();
+            });
+        </script>
+    {% endif %}
+    <script>
+        // Add-to-cart with fly-to-cart animation
+        document.addEventListener('click', function(e) {
+            const btn = e.target.closest && e.target.closest('.js-add-to-cart');
+            if (!btn) return;
+            e.preventDefault();
+
+            const url = btn.dataset.addUrl || btn.getAttribute('href');
+            const card = btn.closest('.shop-card');
+            const img = card ? card.querySelector('img') : null;
+            const mini = document.querySelector('.mini-cart-container a');
+
+            // create a flying clone
+            let clone;
+            if (img) {
+                clone = img.cloneNode(true);
+                clone.style.position = 'fixed';
+                const r = img.getBoundingClientRect();
+                clone.style.left = r.left + 'px';
+                clone.style.top = r.top + 'px';
+                clone.style.width = r.width + 'px';
+                clone.style.height = r.height + 'px';
+                clone.style.zIndex = 2000;
+                clone.style.transition = 'transform 0.8s cubic-bezier(.2,.8,.2,1), left 0.8s, top 0.8s, width 0.8s, height 0.8s, opacity 0.6s';
+                document.body.appendChild(clone);
+            }
+
+            // send AJAX request
+            fetch(url, { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                .then(r => r.json())
+                .then(data => {
+                    // update mini-cart badge
+                    const container = document.querySelector('.mini-cart-container');
+                    if (container) {
+                        let badge = container.querySelector('span');
+                        if (!badge) {
+                            badge = document.createElement('span');
+                            badge.style.position = 'absolute';
+                            badge.style.top = '-6px';
+                            badge.style.right = '-6px';
+                            badge.style.background = '#ff4d4f';
+                            badge.style.color = 'white';
+                            badge.style.borderRadius = '12px';
+                            badge.style.padding = '2px 6px';
+                            badge.style.fontSize = '12px';
+                            badge.style.fontWeight = '700';
+                            container.querySelector('a').appendChild(badge);
+                        }
+                        badge.textContent = data.count || 0;
+                    }
+
+                    // animate clone to mini cart
+                    if (clone && mini) {
+                        const targetRect = mini.getBoundingClientRect();
+                        const endX = targetRect.left + targetRect.width/2 - (clone.width || clone.offsetWidth)/2;
+                        const endY = targetRect.top + targetRect.height/2 - (clone.height || clone.offsetHeight)/2;
+                        requestAnimationFrame(() => {
+                            clone.style.transform = `translate(${endX - parseFloat(clone.style.left)}px, ${endY - parseFloat(clone.style.top)}px) scale(0.2)`;
+                            clone.style.opacity = '0.6';
+                        });
+                        setTimeout(() => clone.remove(), 900);
+                    }
+
+                    // tiny toast
+                    const toast = document.createElement('div');
+                    toast.textContent = data.message || 'Added to cart';
+                    toast.style.position = 'fixed';
+                    toast.style.right = '18px';
+                    toast.style.bottom = '18px';
+                    toast.style.background = 'rgba(0,0,0,0.8)';
+                    toast.style.color = '#fff';
+                    toast.style.padding = '10px 14px';
+                    toast.style.borderRadius = '8px';
+                    toast.style.zIndex = 3000;
+                    document.body.appendChild(toast);
+                    setTimeout(() => toast.remove(), 1400);
+                })
+                .catch(err => {
+                    console.error('Add to cart failed', err);
+                });
+        });
+    </script>
+{% endblock %}

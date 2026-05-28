@@ -1,0 +1,35 @@
+services:
+  mysql:
+    image: mysql:8.0
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: dimagnaong
+      MYSQL_DATABASE: Dramatique_DB
+      MYSQL_USER: darllexie
+      MYSQL_PASSWORD: dramatique
+    ports:
+      - "3312:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - darl_network
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    restart: unless-stopped
+    environment:
+      PMA_HOST: ${PMA_HOST:-mysql}
+      PMA_USER: darllexie
+      PMA_PASSWORD: dramatique
+    ports:
+      - "8080:80"
+    depends_on:
+      - mysql
+    networks:
+      - darl_network
+
+volumes:
+  mysql_data:
+
+networks:
+  darl_network:
