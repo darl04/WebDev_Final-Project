@@ -12,7 +12,8 @@ RUN apt-get update && apt-get install -y \
     nodejs \
     npm \
     libpq-dev \
-    && docker-php-ext-install pdo pdo_mysql bcmath \
+    libicu-dev \
+    && docker-php-ext-install pdo pdo_mysql bcmath intl \
     && pecl install redis \
     && docker-php-ext-enable redis \
     && rm -rf /var/lib/apt/lists/*
@@ -39,9 +40,8 @@ RUN if [ ! -f /var/www/html/.env ]; then \
     echo "APP_ENV=${APP_ENV:-prod}\nAPP_DEBUG=${APP_DEBUG:-false}\nAPP_SECRET=${APP_SECRET:-ChangeMe}\nDEFAULT_URI=${DEFAULT_URI:-http://localhost}\nDATABASE_URL=$DB_URL\nMAILER_DSN=${MAILER_DSN:-null://null}\nMESSENGER_TRANSPORT_DSN=${MESSENGER_TRANSPORT_DSN:-doctrine://default?auto_setup=0}\n" > /var/www/html/.env; \
     fi
 
-# Reinstall dependencies and optimize the autoloader for production.
-RUN composer require symfony/redis-messenger --no-interaction --ignore-platform-reqs && \
-    composer install --no-interaction --optimize-autoloader --no-ansi || true
+# Install production dependencies only (smaller image, faster Railway deploys).
+RUN composer install --no-interaction --optimize-autoloader --no-ansi --no-dev || true
 
 # Warm the Symfony cache in production mode for faster startup.
 RUN php bin/console cache:warmup --env=prod --no-debug || true
