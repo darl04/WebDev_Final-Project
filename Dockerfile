@@ -23,15 +23,15 @@ RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local
 # Allow Composer to run as root in the container.
 ENV COMPOSER_ALLOW_SUPERUSER=1
 
-# 📄 FIX 1: Tell Docker to grab the manifests from the api folder on GitHub
-COPY api/composer.json api/composer.lock ./
+# Copy dependency manifests first to leverage Docker caching.
+COPY composer.json composer.lock ./
 
 # Install PHP dependencies including redis-messenger
 RUN composer install --no-interaction --no-scripts --optimize-autoloader && \
     composer require symfony/redis-messenger --no-interaction
 
-# 📄 FIX 2: Tell Docker to copy the rest of the application source from the api folder
-COPY api/ .
+# Copy the application source directly from your root workspace
+COPY . .
 
 # Create a default .env file if one does not already exist.
 RUN if [ ! -f /var/www/html/.env ]; then \
@@ -72,14 +72,14 @@ RUN mkdir -p /var/www/html/var && \
     chmod -R 775 /var/www/html/var
 
 # Use the main nginx configuration file for the Symfony app.
-COPY api/nginx-main.conf /etc/nginx/nginx.conf
+COPY nginx-main.conf /etc/nginx/nginx.conf
 
 # Remove default nginx site configs and add the Symfony site configuration.
 RUN rm -rf /etc/nginx/conf.d/* /etc/nginx/sites-enabled /etc/nginx/sites-available
-COPY api/nginx.conf /etc/nginx/conf.d/symfony.conf
+COPY nginx.conf /etc/nginx/conf.d/symfony.conf
 
 # Copy and enable the container entrypoint script.
-COPY api/entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+COPY entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
 # Expose HTTP port 8080 from the container.
