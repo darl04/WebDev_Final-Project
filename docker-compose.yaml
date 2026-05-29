@@ -1,4 +1,18 @@
 services:
+  # 1. FrankenPHP Web Server
+  app:
+    image: dunglas/frankenphp
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./:/app
+    networks:
+      - darl_network
+
+  # 2. Your MySQL Database
   mysql:
     image: mysql:8.0
     restart: unless-stopped
@@ -14,11 +28,12 @@ services:
     networks:
       - darl_network
 
+  # 3. Your phpMyAdmin
   phpmyadmin:
     image: phpmyadmin/phpmyadmin
     restart: unless-stopped
     environment:
-      PMA_HOST: ${PMA_HOST:-mysql}
+      PMA_HOST: mysql
       PMA_USER: darllexie
       PMA_PASSWORD: dramatique
     ports:
