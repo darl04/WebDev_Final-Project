@@ -6,3 +6,6 @@ var/cache/
 var/log/
 .env.local
 docker-compose.yaml
+tests/
+.phpunit.cache/
+*.md

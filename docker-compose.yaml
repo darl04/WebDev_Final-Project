@@ -6,12 +6,13 @@ services:
       dockerfile: Dockerfile
     restart: unless-stopped
     ports:
-      - "80:80"  # Your Dockerfile uses Nginx, which listens on port 80
-    volumes:
-      - ./:/app
+      - "8080:8080"
     environment:
+      - PORT=8080
       - APP_ENV=dev
       - DATABASE_URL=mysql://darllexie:dramatique@mysql:3306/Dramatique_DB?serverVersion=8.0
+    volumes:
+      - ./:/var/www/html
     depends_on:
       - mysql
     networks:
@@ -42,7 +43,7 @@ services:
       PMA_USER: darllexie
       PMA_PASSWORD: dramatique
     ports:
-      - "8080:80"
+      - "8081:80"
     depends_on:
       - mysql
     networks:

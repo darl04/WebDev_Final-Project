@@ -4,6 +4,7 @@ namespace App\Entity;
 
 use App\Repository\StockAdjustmentRepository;
 use Doctrine\ORM\Mapping as ORM;
+use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\Metadata\Post;
 use ApiPlatform\Metadata\Get;
