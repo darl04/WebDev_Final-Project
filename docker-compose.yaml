@@ -1,14 +1,19 @@
 services:
-  # 1. FrankenPHP Web Server
+  # 1. Your Symfony App (Swapped FrankenPHP image out for your custom Dockerfile build)
   app:
-    image: dunglas/frankenphp
+    build:
+      context: .
+      dockerfile: Dockerfile
     restart: unless-stopped
     ports:
-      - "80:80"
-      - "443:443"
-      - "443:443/udp"
+      - "80:80"  # Your Dockerfile uses Nginx, which listens on port 80
     volumes:
       - ./:/app
+    environment:
+      - APP_ENV=dev
+      - DATABASE_URL=mysql://darllexie:dramatique@mysql:3306/Dramatique_DB?serverVersion=8.0
+    depends_on:
+      - mysql
     networks:
       - darl_network
 
