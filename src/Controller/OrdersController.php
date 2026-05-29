@@ -38,7 +38,6 @@ final class OrdersController extends AbstractController
         CustomerRepository $customerRepository
     ): Response
     {
-        // Build cart items from session to power checkout flow
         $session = $request->getSession();
         $cart = $session->get('cart', []);
 
@@ -58,8 +57,6 @@ final class OrdersController extends AbstractController
                 continue;
             }
 
-            // Support legacy cart format productId => quantity (int)
-            // and new format productId => ['quantity' => int, 'size' => 'M']
             if (is_array($entry)) {
                 $quantity = (int) ($entry['quantity'] ?? $entry['qty'] ?? 1);
                 $size = $entry['size'] ?? null;
@@ -73,7 +70,6 @@ final class OrdersController extends AbstractController
                 'product' => $product,
                 'quantity' => $quantity,
                 'size' => $size,
-                
                 'subtotal' => $subtotal,
             ];
             $total += $subtotal;
@@ -86,7 +82,6 @@ final class OrdersController extends AbstractController
             $matchedCustomer = $customerRepository->findOneBy(['email' => $user->getEmail()]);
         }
 
-        // Standard shipping fee (PHP)
         $shipping = count($items) > 0 ? 50.0 : 0.0;
         $grandTotal = $total + $shipping;
 
@@ -94,7 +89,6 @@ final class OrdersController extends AbstractController
             $this->addFlash('warning', 'Mascot items are available for rental only and were removed from your sale cart.');
         }
 
-        // If this is a POST from the checkout form, create the order from cart
         if ($request->isMethod('POST')) {
             if (!$this->isCsrfTokenValid('checkout', $request->request->get('_token'))) {
                 throw $this->createAccessDeniedException('Invalid CSRF token.');
@@ -106,13 +100,13 @@ final class OrdersController extends AbstractController
             }
 
             $order = new Orders();
-            // Add each product once (existing Order entity models quantity as a global count)
             foreach ($items as $item) {
                 $order->addProduct($item['product']);
             }
 
             $order->setQuantity($count ?: 1);
             $order->setCreatedBy($this->getUser());
+            
             if (!$order->getStatus()) {
                 $order->setStatus('Pending');
             }
@@ -123,7 +117,6 @@ final class OrdersController extends AbstractController
             if ($matchedCustomer) {
                 $order->setCustomer($matchedCustomer);
             } else {
-                // create a lightweight guest customer to satisfy DB constraint
                 $guest = new Customer();
                 $guest->setName('Guest');
                 $guest->setEmail('guest+' . uniqid() . '@example.local');
@@ -135,13 +128,11 @@ final class OrdersController extends AbstractController
             $entityManager->persist($order);
             $entityManager->flush();
 
-            // Reduce stock for each product in the order (only if not cancelled)
             if ($order->getStatus() !== 'Cancelled') {
-                $this->reduceStockForOrder($order, $stockRepository, $entityManager);
-                $entityManager->flush(); // Flush stock changes
+                $this->reduceStockForOrder($items, $stockRepository, $entityManager);
+                $entityManager->flush();
             }
 
-            // Save a lightweight summary of the order in session so confirmation can display details
             $summaryItems = [];
             foreach ($items as $it) {
                 $prod = $it['product'];
@@ -166,15 +157,12 @@ final class OrdersController extends AbstractController
                 'grandTotal' => $grandTotal,
             ]);
 
-            // Clear the cart
             $session->set('cart', []);
-
             $this->addFlash('success', 'Order placed successfully.');
 
             return $this->redirectToRoute('app_orders_confirmation', ['id' => $order->getId()], Response::HTTP_SEE_OTHER);
         }
 
-        // Render a checkout page populated from the cart
         return $this->render('orders/checkout.html.twig', [
             'items' => $items,
             'total' => $total,
@@ -196,7 +184,6 @@ final class OrdersController extends AbstractController
     #[Route('/{id}/edit', name: 'app_orders_edit', methods: ['GET', 'POST'])]
     public function edit(Request $request, Orders $order, EntityManagerInterface $entityManager, StockRepository $stockRepository): Response
     {
-        // Store original state before form processing
         $originalProducts = [];
         foreach ($order->getProducts() as $product) {
             $originalProducts[] = $product;
@@ -208,7 +195,6 @@ final class OrdersController extends AbstractController
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
-            // permission check: admin can edit anything, staff can edit items created by admin or themselves
             $user = $this->getUser();
             if ($user instanceof User) {
                 $isAdmin = $this->isGranted('ROLE_ADMIN');
@@ -221,32 +207,33 @@ final class OrdersController extends AbstractController
                 }
             }
 
-            // Handle stock changes
             $productsChanged = !$this->productsEqual($originalProducts, $order->getProducts());
             $quantityChanged = $originalQuantity !== $order->getQuantity();
             $statusChanged = $originalStatus !== $order->getStatus();
 
-            // If products or quantity changed, restore old stock and reduce new stock
             if ($productsChanged || $quantityChanged) {
-                // Restore stock for original products (if order wasn't cancelled)
                 if ($originalStatus !== 'Cancelled') {
-                    $originalProductsCollection = new \Doctrine\Common\Collections\ArrayCollection($originalProducts);
-                    $this->restoreStockForOrder($originalProductsCollection, $originalQuantity, $stockRepository, $entityManager);
+                    $this->restoreStockForProducts($originalProducts, $originalQuantity, $stockRepository, $entityManager);
                 }
-                // Reduce stock for new products (if order is not cancelled)
                 if ($order->getStatus() !== 'Cancelled') {
-                    $this->reduceStockForOrder($order, $stockRepository, $entityManager);
+                    // Re-build standard item array structure for modification
+                    $itemsStructure = [];
+                    foreach ($order->getProducts() as $p) {
+                        $itemsStructure[] = ['product' => $p, 'quantity' => $order->getQuantity()];
+                    }
+                    $this->reduceStockForOrder($itemsStructure, $stockRepository, $entityManager);
                 }
             }
 
-            // If only status changed
             if (!$productsChanged && !$quantityChanged && $statusChanged) {
                 if ($originalStatus !== 'Cancelled' && $order->getStatus() === 'Cancelled') {
-                    // Order was cancelled - restore stock
-                    $this->restoreStockForOrder($order->getProducts(), $order->getQuantity(), $stockRepository, $entityManager);
+                    $this->restoreStockForProducts($order->getProducts(), $order->getQuantity(), $stockRepository, $entityManager);
                 } elseif ($originalStatus === 'Cancelled' && $order->getStatus() !== 'Cancelled') {
-                    // Order was uncancelled - reduce stock
-                    $this->reduceStockForOrder($order, $stockRepository, $entityManager);
+                    $itemsStructure = [];
+                    foreach ($order->getProducts() as $p) {
+                        $itemsStructure[] = ['product' => $p, 'quantity' => $order->getQuantity()];
+                    }
+                    $this->reduceStockForOrder($itemsStructure, $stockRepository, $entityManager);
                 }
             }
 
@@ -265,7 +252,6 @@ final class OrdersController extends AbstractController
     #[Route('/{id}', name: 'app_orders_delete', methods: ['POST'])]
     public function delete(Request $request, Orders $order, EntityManagerInterface $entityManager, StockRepository $stockRepository): Response
     {
-        // permission check: admin can delete anything, staff can delete items created by admin or themselves
         $user = $this->getUser();
         if ($user instanceof User) {
             $isAdmin = $this->isGranted('ROLE_ADMIN');
@@ -279,9 +265,8 @@ final class OrdersController extends AbstractController
         }
 
         if ($this->isCsrfTokenValid('delete'.$order->getId(), $request->request->get('_token'))) {
-            // Restore stock before deleting order (only if order wasn't cancelled)
             if ($order->getStatus() !== 'Cancelled') {
-                $this->restoreStockForOrder($order->getProducts(), $order->getQuantity(), $stockRepository, $entityManager);
+                $this->restoreStockForProducts($order->getProducts(), $order->getQuantity(), $stockRepository, $entityManager);
             }
 
             $entityManager->remove($order);
@@ -298,12 +283,10 @@ final class OrdersController extends AbstractController
         $session = $request->getSession();
         $summary = $session->get('last_order_summary', null);
 
-        // If summary belongs to this order id, pass it; otherwise ignore
         if ($summary && ($summary['orderId'] ?? null) !== $order->getId()) {
             $summary = null;
         }
 
-        // Defensive: if a summary exists but lacks a count, compute it from items
         if ($summary && !array_key_exists('count', $summary)) {
             $count = 0;
             if (!empty($summary['items']) && is_array($summary['items'])) {
@@ -321,55 +304,53 @@ final class OrdersController extends AbstractController
     }
 
     /**
-     * Reduce stock for all products in an order
+     * Corrected: Reduces stock based on item quantities in the checkout loop
      */
-    private function reduceStockForOrder(Orders $order, StockRepository $stockRepository, EntityManagerInterface $entityManager): void
+    private function reduceStockForOrder(array $items, StockRepository $stockRepository, EntityManagerInterface $entityManager): void
     {
-        $orderQuantity = $order->getQuantity();
+        foreach ($items as $item) {
+            $product = $item['product'];
+            $buyQty = $item['quantity'];
 
-        foreach ($order->getProducts() as $product) {
-            $stock = $stockRepository->findOneByProduct($product);
+            // Changed from findOneByProduct to native findOneBy matching your schema structure
+            $stock = $stockRepository->findOneBy(['product' => $product]);
 
             if ($stock) {
                 $currentQuantity = $stock->getQuantity();
-                $newQuantity = max(0, $currentQuantity - $orderQuantity);
+                $newQuantity = max(0, $currentQuantity - $buyQty);
                 $stock->setQuantity($newQuantity);
                 
-                // Update stock status if quantity reaches 0
                 if ($newQuantity === 0) {
                     $stock->setStatus('Out of Stock');
                 } else {
                     $stock->setStatus('In Stock');
                 }
 
-                $stock->setUpdatedAt(new \DateTimeImmutable('now', new \DateTimeZone(date_default_timezone_get())));
+                $stock->setUpdatedAt(new \DateTimeImmutable('now', new \DateTimeZone(date_default_timezone_get() ?: 'UTC')));
                 $entityManager->persist($stock);
             }
         }
     }
 
     /**
-     * Restore stock for products (used when order is cancelled or deleted)
+     * Corrected: Standardized lookup using explicit field arrays
      */
-    private function restoreStockForOrder(\Doctrine\Common\Collections\Collection|array $products, int $quantity, StockRepository $stockRepository, EntityManagerInterface $entityManager): void
+    private function restoreStockForProducts(iterable $products, int $quantity, StockRepository $stockRepository, EntityManagerInterface $entityManager): void
     {
         foreach ($products as $product) {
-            $stock = $stockRepository->findOneByProduct($product);
+            $stock = $stockRepository->findOneBy(['product' => $product]);
 
             if ($stock) {
                 $currentQuantity = $stock->getQuantity();
                 $newQuantity = $currentQuantity + $quantity;
                 $stock->setQuantity($newQuantity);
                 $stock->setStatus('In Stock');
-                $stock->setUpdatedAt(new \DateTimeImmutable('now', new \DateTimeZone(date_default_timezone_get())));
+                $stock->setUpdatedAt(new \DateTimeImmutable('now', new \DateTimeZone(date_default_timezone_get() ?: 'UTC')));
                 $entityManager->persist($stock);
             }
         }
     }
 
-    /**
-     * Check if two product collections are equal
-     */
     private function productsEqual(array|\Doctrine\Common\Collections\Collection $products1, \Doctrine\Common\Collections\Collection $products2): bool
     {
         $count1 = is_array($products1) ? count($products1) : $products1->count();
