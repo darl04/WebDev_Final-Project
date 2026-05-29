@@ -10,8 +10,21 @@ use Doctrine\Common\Collections\Collection;
 use App\Entity\User;
 use App\Entity\Stock;
 use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\GetCollection;
+use ApiPlatform\Metadata\Post;
+use ApiPlatform\Metadata\Get;
+use ApiPlatform\Metadata\Put;
+use ApiPlatform\Metadata\Delete;
 
-#[ApiResource]
+#[ApiResource(
+    operations: [
+        new GetCollection(),
+        new Post(),
+        new Get(),
+        new Put(),
+        new Delete()
+    ]
+)]
 
 #[ORM\Entity(repositoryClass: ProductsRepository::class)]
 class Products
