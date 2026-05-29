@@ -65,6 +65,10 @@ COPY --from=builder /var/www/html /var/www/html
 COPY --from=builder /usr/local/etc/php/conf.d/ /usr/local/etc/php/conf.d/
 COPY --from=builder /usr/local/lib/php/extensions/ /usr/local/lib/php/extensions/
 
+# Set up PHP file upload limits to allow 20MB files
+RUN echo "upload_max_filesize = 20M" > /usr/local/etc/php/conf.d/uploads.ini \
+    && echo "post_max_size = 20M" >> /usr/local/etc/php/conf.d/uploads.ini
+
 # Create runtime directories and fix permissions for the web server user.
 RUN mkdir -p /var/www/html/var && \
     chown -R www-data:www-data /var/www/html && \
