@@ -30,7 +30,7 @@ COPY composer.json composer.lock ./
 RUN composer install --no-interaction --no-scripts --optimize-autoloader && \
     composer require symfony/redis-messenger --no-interaction
 
-# Copy the application source after dependencies are cached.
+# Copy the application source from the /api folder (since Railway context is inside /api)
 COPY . .
 
 # Create a default .env file if one does not already exist.
