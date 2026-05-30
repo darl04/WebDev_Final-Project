@@ -58,18 +58,18 @@ final class StockController extends AbstractController
                 $stock->setCreatedAt(new \DateTimeImmutable('now', new \DateTimeZone(date_default_timezone_get() ?: 'UTC')));
             }
 
-            // --- FIX 1: FLUSH STOCK FIRST ---
-            // Force MySQL to execute the INSERT and generate the AUTO_INCREMENT ID right now
             $entityManager->persist($stock);
-            $entityManager->flush();
 
-            // --- FIX 2: CREATE & FLUSH ADJUSTMENT SECOND ---
-            // Now $stock has a real database ID, meaning the foreign key requirement is safely met!
             if (($stock->getQuantity() ?? 0) > 0) {
-                $adjustment = $this->createStockAdjustment($stock, $this->getUser() instanceof User ? $this->getUser() : null, $stock->getQuantity() ?? 0);
+                $adjustment = $this->createStockAdjustment(
+                    $stock,
+                    $this->getUser() instanceof User ? $this->getUser() : null,
+                    $stock->getQuantity() ?? 0
+                );
                 $entityManager->persist($adjustment);
-                $entityManager->flush(); 
             }
+
+            $entityManager->flush();
 
             $this->addFlash('success', 'Stock created successfully.');
 
@@ -130,15 +130,16 @@ final class StockController extends AbstractController
             // Update the Stock fields and the updatedAt timestamp
             $stock->setUpdatedAt(new \DateTimeImmutable('now', new \DateTimeZone(date_default_timezone_get() ?: 'UTC')));
             
-            // --- FIX 3: FLUSH EDITED STOCK RECORD FIRST ---
-            $entityManager->flush();
-
-            // --- FIX 4: PERSIST AND FLUSH ADJUSTMENT RECORD IF QUANTITY INCREASED ---
             if ($quantityAdded > 0) {
-                $adjustment = $this->createStockAdjustment($stock, $this->getUser() instanceof User ? $this->getUser() : null, $quantityAdded);
+                $adjustment = $this->createStockAdjustment(
+                    $stock,
+                    $this->getUser() instanceof User ? $this->getUser() : null,
+                    $quantityAdded
+                );
                 $entityManager->persist($adjustment);
-                $entityManager->flush();
             }
+
+            $entityManager->flush();
 
             $this->addFlash('success', 'Stock updated successfully.');
 
