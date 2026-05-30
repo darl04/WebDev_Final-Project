@@ -1,0 +1,250 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}My Orders{% endblock %}
+{% block page_title %}My Orders{% endblock %}
+
+{% block stylesheets %}
+    <style>
+        .my-orders-intro {
+            color: var(--text-light);
+            margin-bottom: 24px;
+            font-size: 15px;
+        }
+
+        .my-orders-live {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            color: #4caf50;
+            font-weight: 500;
+            margin-left: 8px;
+        }
+
+        .my-orders-live::before {
+            content: '';
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #4caf50;
+            animation: live-pulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes live-pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.35; }
+        }
+
+        .my-orders-list {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            max-width: 900px;
+        }
+
+        .my-order-card {
+            background: var(--bg-white);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 20px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            flex-wrap: wrap;
+            transition: box-shadow 0.2s ease;
+        }
+
+        .my-order-card:hover {
+            box-shadow: 0 4px 16px rgba(102, 45, 145, 0.08);
+        }
+
+        .my-order-main {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .order-status-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            flex-shrink: 0;
+        }
+
+        .order-status-icon-pending {
+            background: rgba(255, 152, 0, 0.12);
+            color: #ff9800;
+        }
+
+        .order-status-icon-delivered {
+            background: rgba(76, 175, 80, 0.12);
+            color: #4caf50;
+        }
+
+        .order-status-icon-cancelled {
+            background: rgba(244, 67, 54, 0.12);
+            color: #f44336;
+        }
+
+        .my-order-id {
+            font-family: 'Poppins', sans-serif;
+            font-weight: 600;
+            font-size: 16px;
+            margin-bottom: 4px;
+        }
+
+        .my-order-meta {
+            font-size: 13px;
+            color: var(--text-light);
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .status-badge-pending {
+            background: rgba(255, 152, 0, 0.1);
+            color: #ff9800;
+            border: 1px solid rgba(255, 152, 0, 0.3);
+        }
+
+        .status-badge-delivered {
+            background: rgba(76, 175, 80, 0.1);
+            color: #4caf50;
+            border: 1px solid rgba(76, 175, 80, 0.3);
+        }
+
+        .status-badge-cancelled {
+            background: rgba(244, 67, 54, 0.1);
+            color: #f44336;
+            border: 1px solid rgba(244, 67, 54, 0.3);
+        }
+
+        .my-orders-empty {
+            text-align: center;
+            padding: 48px 24px;
+            background: var(--bg-white);
+            border-radius: 12px;
+            border: 1px dashed var(--border-color);
+            max-width: 500px;
+        }
+
+        .my-orders-empty i {
+            font-size: 48px;
+            color: var(--primary-light);
+            margin-bottom: 16px;
+        }
+
+        .btn-view-order {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 18px;
+            background: var(--primary-color);
+            color: white;
+            border-radius: 8px;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            transition: background 0.2s ease;
+        }
+
+        .btn-view-order:hover {
+            background: var(--primary-dark);
+            color: white;
+        }
+    </style>
+{% endblock %}
+
+{% block body %}
+    <p class="my-orders-intro">
+        Track your orders — see whether each one is pending, delivered, or cancelled.
+        <span class="my-orders-live">Live updates</span>
+    </p>
+
+    <div id="my-orders-poll-root">
+        {% if orders|length > 0 %}
+            <div class="my-orders-list">
+                {% for order in orders %}
+                    {% set statusKey = order.status|lower %}
+                    {% set statusClass = statusKey|replace({' ': '-'}) %}
+                    <article class="my-order-card" data-order-id="{{ order.id }}">
+                        <div class="my-order-main">
+                            <div class="order-status-icon order-status-icon-{{ statusClass }}" aria-hidden="true">
+                                {% if statusKey == 'delivered' %}
+                                    <i class="fas fa-circle-check"></i>
+                                {% elseif statusKey == 'cancelled' %}
+                                    <i class="fas fa-circle-xmark"></i>
+                                {% else %}
+                                    <i class="fas fa-clock"></i>
+                                {% endif %}
+                            </div>
+                            <div>
+                                <div class="my-order-id">Order #{{ order.id }}</div>
+                                <div class="my-order-meta">
+                                    {{ order.createdAt ? order.createdAt|date('M j, Y g:i A') : '—' }}
+                                    · {{ order.products|length }} item{{ order.products|length != 1 ? 's' : '' }}
+                                </div>
+                            </div>
+                        </div>
+                        <span class="status-badge status-badge-{{ statusClass }}">{{ order.status }}</span>
+                        <a href="{{ path('app_my_orders_show', {'id': order.id}) }}" class="btn-view-order">
+                            <i class="fas fa-eye"></i> View details
+                        </a>
+                    </article>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="my-orders-empty">
+                <i class="fas fa-box-open"></i>
+                <h3 style="margin-bottom:8px;">No orders yet</h3>
+                <p style="color:var(--text-light);margin-bottom:20px;">When you place an order, it will appear here with its status.</p>
+                <a href="{{ path('app_products_index') }}" class="btn-view-order">
+                    <i class="fas fa-store"></i> Browse shop
+                </a>
+            </div>
+        {% endif %}
+    </div>
+
+    <template id="my-orders-empty-template">
+        <div class="my-orders-empty">
+            <i class="fas fa-box-open"></i>
+            <h3 style="margin-bottom:8px;">No orders yet</h3>
+            <p style="color:var(--text-light);margin-bottom:20px;">When you place an order, it will appear here with its status.</p>
+            <a href="{{ path('app_products_index') }}" class="btn-view-order">
+                <i class="fas fa-store"></i> Browse shop
+            </a>
+        </div>
+    </template>
+{% endblock %}
+
+{% block javascripts %}
+    <script>
+        (function () {
+            const tpl = document.getElementById('my-orders-empty-template');
+            const root = document.getElementById('my-orders-poll-root');
+            if (tpl && root) {
+                root.dataset.emptyHtml = tpl.innerHTML;
+            }
+        })();
+        window.ORDER_POLL_CONFIG = {
+            mode: 'my-orders',
+            url: '{{ path('app_orders_poll_my') }}',
+            intervalMs: 5000
+        };
+    </script>
+    <script src="{{ asset('js/order-polling.js') }}"></script>
+{% endblock %}

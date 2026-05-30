@@ -112,7 +112,13 @@
             <div style="margin:18px 0;color:#6f6258;">Order #{{ order.getId() }} — we'll email you the details shortly.</div>
         {% endif %}
 
-        <div style="text-align:center;margin-top:20px;">
+        <div style="text-align:center;margin-top:20px;display:flex;flex-wrap:wrap;gap:12px;justify-content:center;">
+            {% if app.user and not (is_granted('ROLE_ADMIN') or is_granted('ROLE_STAFF')) %}
+            <a href="{{ path('app_my_orders_show', {'id': order.id}) }}" class="btn btn-primary" style="padding:12px 22px;border-radius:28px;text-decoration:none;display:inline-flex;align-items:center;gap:10px;">
+                <i class="fas fa-clipboard-list" aria-hidden="true"></i>
+                <span>Track order status</span>
+            </a>
+            {% endif %}
             <a href="{{ path('app_products_index') }}" class="btn btn-primary" style="padding:12px 22px;border-radius:28px;text-decoration:none;display:inline-flex;align-items:center;gap:10px;box-shadow:0 6px 16px rgba(207,166,240,0.18);">
                 <i class="fas fa-shopping-bag" aria-hidden="true"></i>
                 <span>Shop Now</span>

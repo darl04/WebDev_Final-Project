@@ -147,6 +147,119 @@
             margin: 0;
             color: #666;
         }
+
+        .recent-orders-panel {
+            background-color: white;
+            padding: 24px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            border: 1px solid #e0e0e0;
+            margin-bottom: 32px;
+        }
+
+        .recent-orders-panel h2 {
+            font-family: 'Poppins', sans-serif;
+            font-size: 18px;
+            margin-bottom: 8px;
+        }
+
+        .recent-orders-hint {
+            font-size: 13px;
+            color: #666;
+            margin-bottom: 16px;
+        }
+
+        .recent-order-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 14px 0;
+            border-bottom: 1px solid #eee;
+            flex-wrap: wrap;
+        }
+
+        .recent-order-row:last-child {
+            border-bottom: none;
+        }
+
+        .recent-order-main {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .recent-order-meta,
+        .recent-order-products {
+            font-size: 13px;
+            color: #666;
+        }
+
+        .recent-order-link {
+            color: #662d91;
+            font-size: 18px;
+            padding: 8px;
+        }
+
+        .recent-orders-empty {
+            color: #666;
+            font-size: 14px;
+            padding: 12px 0;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .status-badge-pending {
+            background: rgba(255, 152, 0, 0.1);
+            color: #ff9800;
+            border: 1px solid rgba(255, 152, 0, 0.3);
+        }
+
+        .status-badge-delivered {
+            background: rgba(76, 175, 80, 0.1);
+            color: #4caf50;
+            border: 1px solid rgba(76, 175, 80, 0.3);
+        }
+
+        .status-badge-cancelled {
+            background: rgba(244, 67, 54, 0.1);
+            color: #f44336;
+            border: 1px solid rgba(244, 67, 54, 0.3);
+        }
+
+        .live-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            color: #4caf50;
+            font-weight: 500;
+            margin-left: 8px;
+        }
+
+        .live-indicator::before {
+            content: '';
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #4caf50;
+            animation: live-pulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes live-pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.35; }
+        }
     </style>
 {% endblock %}
 
@@ -165,32 +278,65 @@
     </div>
 
     {% if is_granted('ROLE_ADMIN') or is_granted('ROLE_STAFF') %}
+        {% set initialOrderIds = recentOrders|default([])|map(o => o.id)|join(',') %}
+        <div id="dashboard-poll-root"
+             data-initial-orders="{{ totalOrders }}"
+             data-initial-order-ids="{{ initialOrderIds }}"></div>
+
         <div class="stats-grid">
             <div class="stat-card">
                 <i class="stat-icon fas fa-box"></i>
                 <div class="stat-label">Total Products</div>
-                <div class="stat-value">{{ totalProducts }}</div>
+                <div class="stat-value" data-dashboard-stat="totalProducts">{{ totalProducts }}</div>
             </div>
             
             <div class="stat-card">
                 <i class="stat-icon fas fa-users"></i>
                 <div class="stat-label">Total Customers</div>
-                <div class="stat-value">{{ totalCustomers }}</div>
+                <div class="stat-value" data-dashboard-stat="totalCustomers">{{ totalCustomers }}</div>
             </div>
             
             <div class="stat-card">
                 <i class="stat-icon fas fa-shopping-cart"></i>
                 <div class="stat-label">Total Orders</div>
-                <div class="stat-value">{{ totalOrders }}</div>
+                <div class="stat-value" data-dashboard-stat="totalOrders">{{ totalOrders }}</div>
             </div>
             
             <div class="stat-card">
                 <i class="stat-icon fas fa-peso-sign"></i>
                 <div class="stat-label">Total Revenue</div>
-                <div class="stat-value">₱{{ revenue|number_format(2) }}</div>
-                <div style="font-size: 12px; color: #666; margin-top: 8px;">
+                <div class="stat-value" data-dashboard-stat="revenue">₱{{ revenue|number_format(2) }}</div>
+                <div id="dashboard-revenue-breakdown" style="font-size: 12px; color: #666; margin-top: 8px;">
                     Orders: ₱{{ orderRevenue|number_format(2) }} | Rentals: ₱{{ rentalRevenue|number_format(2) }}
                 </div>
+            </div>
+        </div>
+
+        <div class="recent-orders-panel">
+            <h2>
+                Recent Orders
+                <span class="live-indicator">Live</span>
+            </h2>
+            <p class="recent-orders-hint">Updates automatically when customers place orders.</p>
+            <div id="dashboard-recent-orders">
+                {% if recentOrders|default([])|length > 0 %}
+                    {% for order in recentOrders %}
+                        {% set sc = order.statusClass|default(order.status|lower) %}
+                        <div class="recent-order-row" data-order-id="{{ order.id }}">
+                            <div class="recent-order-main">
+                                <strong>Order #{{ order.id }}</strong>
+                                <span class="recent-order-meta">{{ order.customerName }} · {{ order.createdAt }}</span>
+                                <span class="recent-order-products">{{ order.productNames|join(', ') }}</span>
+                            </div>
+                            <span class="status-badge status-badge-{{ sc }}">{{ order.status }}</span>
+                            <a href="{{ path('app_orders_show', {'id': order.id}) }}" class="recent-order-link" title="View order">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <p class="recent-orders-empty">No orders yet. New orders will appear here automatically.</p>
+                {% endif %}
             </div>
         </div>
 
@@ -222,5 +368,18 @@
         <div class="access-message">
             <p><strong>Limited Access:</strong> You do not have administrative permissions. Contact your administrator for additional access.</p>
         </div>
+    {% endif %}
+{% endblock %}
+
+{% block javascripts %}
+    {% if is_granted('ROLE_ADMIN') or is_granted('ROLE_STAFF') %}
+        <script>
+            window.ORDER_POLL_CONFIG = {
+                mode: 'dashboard',
+                url: '{{ path('app_dashboard_poll') }}',
+                intervalMs: 5000
+            };
+        </script>
+        <script src="{{ asset('js/order-polling.js') }}"></script>
     {% endif %}
 {% endblock %}

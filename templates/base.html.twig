@@ -773,12 +773,6 @@
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a href="{{ path('app_rental_index') }}" class="nav-link {{ app.request.get('_route') starts with 'app_rental' ? 'active' : '' }}">
-                            <i class="nav-icon fas fa-tag"></i>
-                            <span>Rental</span>
-                        </a>
-                    </li>
-                    <li class="nav-item">
                         <a href="{{ path('app_stock_index') }}" class="nav-link {{ app.request.get('_route') starts with 'app_stock' ? 'active' : '' }}">
                             <i class="nav-icon fas fa-warehouse"></i>
                             <span>Stock</span>
@@ -810,7 +804,12 @@
             <div class="topbar">
                 <div class="topbar-title">{% block page_title %}{% endblock %}</div>
                 <div class="topbar-user">
-                    {{ render(controller('App\\Controller\\CartController::mini')) }}
+                    {% if not (is_granted('ROLE_ADMIN') or is_granted('ROLE_STAFF')) %}
+                        <a href="{{ path('app_my_orders') }}" class="icon-only" title="My orders" aria-label="My orders">
+                            <i class="fas fa-clipboard-list" style="font-size:18px;color:var(--primary-color);"></i>
+                        </a>
+                        {{ render(controller('App\\Controller\\CartController::mini')) }}
+                    {% endif %}
                     <div class="profile-dropdown" id="profileDropdown">
                         <div class="profile-dropdown-trigger">
                             <div class="user-avatar-container">
@@ -836,6 +835,12 @@
                             <i class="fas fa-chevron-down" style="font-size: 12px; color: var(--text-light);"></i>
                         </div>
                         <div class="profile-dropdown-menu">
+                            {% if not (is_granted('ROLE_ADMIN') or is_granted('ROLE_STAFF')) %}
+                            <a href="{{ path('app_my_orders') }}" class="profile-dropdown-item">
+                                <i class="fas fa-clipboard-list"></i>
+                                <span>My Orders</span>
+                            </a>
+                            {% endif %}
                             <a href="{{ path('app_profile') }}" class="profile-dropdown-item">
                                 <i class="fas fa-user"></i>
                                 <span>View Profile</span>

@@ -14,9 +14,11 @@ use App\Repository\ProductsRepository;
 use App\Entity\User;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
+use App\Service\OrderPollSerializer;
 use App\Service\SocketNotificationBridge;
 
 #[Route('/orders')]
@@ -25,9 +27,93 @@ final class OrdersController extends AbstractController
     #[Route(name: 'app_orders_index', methods: ['GET'])]
     public function index(OrdersRepository $ordersRepository): Response
     {
-        return $this->render('orders/index.html.twig', [
-            'orders' => $ordersRepository->findAll(),
+        if ($this->isGranted('ROLE_ADMIN') || $this->isGranted('ROLE_STAFF')) {
+            return $this->render('orders/index.html.twig', [
+                'orders' => $ordersRepository->findAll(),
+            ]);
+        }
+
+        return $this->redirectToRoute('app_my_orders');
+    }
+
+    #[Route('/my', name: 'app_my_orders', methods: ['GET'])]
+    public function myOrders(OrdersRepository $ordersRepository): Response
+    {
+        $user = $this->getUser();
+        if (!$user instanceof User) {
+            return $this->redirectToRoute('app_login');
+        }
+
+        if ($this->isGranted('ROLE_ADMIN') || $this->isGranted('ROLE_STAFF')) {
+            return $this->redirectToRoute('app_orders_index');
+        }
+
+        return $this->render('orders/my_orders.html.twig', [
+            'orders' => $ordersRepository->findForUser($user),
         ]);
+    }
+
+    #[Route('/my/{id}', name: 'app_my_orders_show', methods: ['GET'])]
+    public function myOrderShow(Orders $order, OrdersRepository $ordersRepository): Response
+    {
+        $user = $this->getUser();
+        if (!$user instanceof User) {
+            return $this->redirectToRoute('app_login');
+        }
+
+        if ($this->isGranted('ROLE_ADMIN') || $this->isGranted('ROLE_STAFF')) {
+            return $this->redirectToRoute('app_orders_show', ['id' => $order->getId()]);
+        }
+
+        if (!$ordersRepository->userOwnsOrder($order, $user)) {
+            throw $this->createAccessDeniedException('You do not have access to this order.');
+        }
+
+        return $this->render('orders/my_order_show.html.twig', [
+            'order' => $order,
+        ]);
+    }
+
+    #[Route('/poll/my', name: 'app_orders_poll_my', methods: ['GET'])]
+    public function pollMy(OrdersRepository $ordersRepository, OrderPollSerializer $serializer): JsonResponse
+    {
+        $user = $this->getUser();
+        if (!$user instanceof User) {
+            throw $this->createAccessDeniedException();
+        }
+
+        if ($this->isGranted('ROLE_ADMIN') || $this->isGranted('ROLE_STAFF')) {
+            throw $this->createAccessDeniedException();
+        }
+
+        $orders = array_map(
+            static fn (Orders $order) => $serializer->serializeForCustomer($order),
+            $ordersRepository->findForUser($user),
+        );
+
+        return $this->json(['orders' => $orders]);
+    }
+
+    #[Route('/poll/my/{id}', name: 'app_orders_poll_my_show', methods: ['GET'])]
+    public function pollMyOrder(
+        Orders $order,
+        OrdersRepository $ordersRepository,
+        OrderPollSerializer $serializer,
+    ): JsonResponse {
+        $user = $this->getUser();
+        if (!$user instanceof User) {
+            throw $this->createAccessDeniedException();
+        }
+
+        if ($this->isGranted('ROLE_ADMIN') || $this->isGranted('ROLE_STAFF')) {
+            throw $this->createAccessDeniedException();
+        }
+
+        if (!$ordersRepository->userOwnsOrder($order, $user)) {
+            throw $this->createAccessDeniedException();
+        }
+
+        return $this->json(['order' => $serializer->serializeForCustomer($order)]);
     }
 
     #[Route('/new', name: 'app_orders_new', methods: ['GET', 'POST'])]

@@ -1,0 +1,228 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Order #{{ order.id }}{% endblock %}
+{% block page_title %}Order #{{ order.id }}{% endblock %}
+
+{% block stylesheets %}
+    <style>
+        .status-badge {
+            display: inline-block;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .status-badge-pending {
+            background: rgba(255, 152, 0, 0.1);
+            color: #ff9800;
+            border: 1px solid rgba(255, 152, 0, 0.3);
+        }
+
+        .status-badge-delivered {
+            background: rgba(76, 175, 80, 0.1);
+            color: #4caf50;
+            border: 1px solid rgba(76, 175, 80, 0.3);
+        }
+
+        .status-badge-cancelled {
+            background: rgba(244, 67, 54, 0.1);
+            color: #f44336;
+            border: 1px solid rgba(244, 67, 54, 0.3);
+        }
+
+        .order-status-banner {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 20px 24px;
+            background: var(--bg-white);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            margin-bottom: 24px;
+            max-width: 900px;
+        }
+
+        .order-status-icon {
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            flex-shrink: 0;
+        }
+
+        .order-status-icon-pending {
+            background: rgba(255, 152, 0, 0.12);
+            color: #ff9800;
+        }
+
+        .order-status-icon-delivered {
+            background: rgba(76, 175, 80, 0.12);
+            color: #4caf50;
+        }
+
+        .order-status-icon-cancelled {
+            background: rgba(244, 67, 54, 0.12);
+            color: #f44336;
+        }
+
+        .order-status-banner h2 {
+            font-size: 18px;
+            margin-bottom: 4px;
+        }
+
+        .order-status-banner p {
+            font-size: 14px;
+            color: var(--text-light);
+            margin: 0;
+        }
+
+        .product-image {
+            width: 80px;
+            height: 80px;
+            object-fit: cover;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+
+        .product-item {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+
+        .product-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .table-container {
+            max-width: 900px;
+            background: var(--bg-white);
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+
+        .btn-back {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 18px;
+            background: #f0f0f0;
+            color: var(--text-dark);
+            border-radius: 8px;
+            text-decoration: none;
+            font-size: 14px;
+        }
+
+        .btn-back:hover {
+            background: #e4e4e4;
+            color: var(--text-dark);
+        }
+
+        .my-orders-live {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            color: #4caf50;
+            font-weight: 500;
+        }
+
+        .my-orders-live::before {
+            content: '';
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #4caf50;
+            animation: live-pulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes live-pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.35; }
+        }
+    </style>
+{% endblock %}
+
+{% block body %}
+    {% set statusKey = order.status|lower %}
+    {% set statusClass = statusKey|replace({' ': '-'}) %}
+
+    <div class="order-status-banner" id="my-order-status-banner" data-status="{{ order.status }}">
+        <div id="my-order-status-icon" class="order-status-icon order-status-icon-{{ statusClass }}">
+            {% if statusKey == 'delivered' %}
+                <i class="fas fa-circle-check"></i>
+            {% elseif statusKey == 'cancelled' %}
+                <i class="fas fa-circle-xmark"></i>
+            {% else %}
+                <i class="fas fa-clock"></i>
+            {% endif %}
+        </div>
+        <div>
+            <h2 id="my-order-status-title">
+                {% if statusKey == 'delivered' %}
+                    Your order has been delivered
+                {% elseif statusKey == 'cancelled' %}
+                    This order was cancelled
+                {% else %}
+                    Your order is pending
+                {% endif %}
+            </h2>
+            <p>
+                Placed on {{ order.createdAt ? order.createdAt|date('F j, Y \\a\\t g:i A') : '—' }}
+                · <span id="my-order-status-badge" class="status-badge status-badge-{{ statusClass }}">{{ order.status }}</span>
+                <span class="my-orders-live" style="margin-left:8px;">Live</span>
+            </p>
+        </div>
+    </div>
+
+    <div class="table-container">
+        <h3 style="font-size:16px;margin-bottom:16px;">Items</h3>
+        {% if order.products|length > 0 %}
+            {% for product in order.products %}
+                <div class="product-item">
+                    {% if product.image %}
+                        <img src="{{ product.image }}" alt="{{ product.name }}" class="product-image">
+                    {% else %}
+                        <div class="product-image" style="display:flex;align-items:center;justify-content:center;background:#f5f5f5;color:#999;font-size:12px;">No image</div>
+                    {% endif %}
+                    <div>
+                        <div style="font-weight:600;">{{ product.name }}</div>
+                        {% if product.price %}
+                            <div style="font-size:14px;color:var(--text-light);">₱{{ product.price|number_format(2, '.', ',') }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+            {% endfor %}
+        {% else %}
+            <p style="color:var(--text-light);">No products listed for this order.</p>
+        {% endif %}
+
+        <p style="margin-top:20px;font-size:14px;color:var(--text-light);">
+            Total quantity: <strong>{{ order.quantity }}</strong>
+        </p>
+    </div>
+
+    <a href="{{ path('app_my_orders') }}" class="btn-back">
+        <i class="fas fa-arrow-left"></i> Back to my orders
+    </a>
+{% endblock %}
+
+{% block javascripts %}
+    <script>
+        window.ORDER_POLL_CONFIG = {
+            mode: 'my-order-show',
+            url: '{{ path('app_orders_poll_my_show', {'id': order.id}) }}',
+            intervalMs: 5000
+        };
+    </script>
+    <script src="{{ asset('js/order-polling.js') }}"></script>
+{% endblock %}
