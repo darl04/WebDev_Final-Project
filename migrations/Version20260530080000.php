@@ -26,6 +26,9 @@ final class Version20260530080000 extends AbstractMigration
         if ($this->tableExists('stock_adjustment')) {
             $this->addSql('ALTER TABLE stock_adjustment MODIFY id INT AUTO_INCREMENT NOT NULL');
         }
+        if ($this->tableExists('activity_log')) {
+            $this->addSql('ALTER TABLE activity_log MODIFY id INT AUTO_INCREMENT NOT NULL');
+        }
     }
 
     public function down(Schema $schema): void

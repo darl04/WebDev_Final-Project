@@ -24,7 +24,10 @@ fi
 
 # Running database tasks
 echo "Running migrations..."
-php bin/console doctrine:migrations:migrate --no-interaction --allow-no-migration || true
+php bin/console doctrine:migrations:migrate --no-interaction --allow-no-migration || echo "Warning: migrations did not complete."
+
+echo "Ensuring AUTO_INCREMENT on stock-related tables..."
+php bin/console app:db:fix-auto-increment --no-interaction || echo "Warning: AUTO_INCREMENT repair did not complete."
 
 # Do not load demo fixtures in production (Railway)
 if [ "${APP_ENV:-prod}" != "prod" ]; then

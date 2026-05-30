@@ -31,7 +31,7 @@ class Stock
     #[ORM\Column]
     private ?int $id = null;
 
-    #[ORM\ManyToOne(targetEntity: Products::class)]
+    #[ORM\ManyToOne(targetEntity: Products::class, inversedBy: 'stocks')]
     #[ORM\JoinColumn(nullable: false)]
     private ?Products $product = null;
 
