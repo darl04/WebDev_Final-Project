@@ -17,6 +17,7 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
+use App\Service\SocketNotificationBridge;
 
 #[Route('/orders')]
 final class OrdersController extends AbstractController
@@ -35,7 +36,8 @@ final class OrdersController extends AbstractController
         EntityManagerInterface $entityManager,
         StockRepository $stockRepository,
         ProductsRepository $productsRepository,
-        CustomerRepository $customerRepository
+        CustomerRepository $customerRepository,
+        SocketNotificationBridge $socketNotificationBridge,
     ): Response
     {
         $session = $request->getSession();
@@ -159,6 +161,16 @@ final class OrdersController extends AbstractController
 
             $session->set('cart', []);
             $this->addFlash('success', 'Order placed successfully.');
+
+            $user = $this->getUser();
+            if ($user instanceof User) {
+                $socketNotificationBridge->notifyUser(
+                    $user->getUserIdentifier(),
+                    'Order placed',
+                    sprintf('Order #%d is being processed.', $order->getId()),
+                    'order',
+                );
+            }
 
             return $this->redirectToRoute('app_orders_confirmation', ['id' => $order->getId()], Response::HTTP_SEE_OTHER);
         }

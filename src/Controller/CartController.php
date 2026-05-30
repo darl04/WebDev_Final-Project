@@ -2,7 +2,9 @@
 
 namespace App\Controller;
 
+use App\Entity\User;
 use App\Repository\ProductsRepository;
+use App\Service\SocketNotificationBridge;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -61,8 +63,12 @@ final class CartController extends AbstractController
     }
 
     #[Route('/cart/add/{id}', name: 'app_cart_add')]
-    public function add(int $id, Request $request, ProductsRepository $productsRepository): Response
-    {
+    public function add(
+        int $id,
+        Request $request,
+        ProductsRepository $productsRepository,
+        SocketNotificationBridge $socketNotificationBridge,
+    ): Response {
         $product = $productsRepository->find($id);
         if (!$product) {
             throw $this->createNotFoundException('Product not found');
@@ -105,6 +111,16 @@ final class CartController extends AbstractController
         }
 
         $session->set('cart', $cart);
+
+        $user = $this->getUser();
+        if ($user instanceof User) {
+            $socketNotificationBridge->notifyUser(
+                $user->getUserIdentifier(),
+                'Added to cart',
+                sprintf('Added "%s" to cart.', $product->getName()),
+                'cart',
+            );
+        }
 
         // compute updated count
         $count = 0;

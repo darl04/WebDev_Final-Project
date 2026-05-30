@@ -1,0 +1,9 @@
+{
+  "name": "webdev-project2",
+  "private": true,
+  "scripts": {
+    "socket": "npm --prefix socket-server start",
+    "socket:install": "npm --prefix socket-server install",
+    "socket:dev": "npm --prefix socket-server run dev"
+  }
+}

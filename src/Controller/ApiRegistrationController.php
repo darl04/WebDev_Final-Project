@@ -4,6 +4,7 @@ namespace App\Controller;
 
 use App\Entity\User;
 use App\Service\EmailVerificationService;
+use App\Service\SocketNotificationBridge;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -23,6 +24,7 @@ class ApiRegistrationController extends AbstractController
         UserPasswordHasherInterface $passwordHasher,
         ValidatorInterface $validator,
         EmailVerificationService $emailVerificationService,
+        SocketNotificationBridge $socketNotificationBridge,
     ): JsonResponse {
         $data = json_decode($request->getContent(), true);
 
@@ -119,6 +121,13 @@ class ApiRegistrationController extends AbstractController
         } catch (\Throwable) {
             // Registration should still succeed even if email sending fails.
         }
+
+        $socketNotificationBridge->notifyUser(
+            $user->getUsername(),
+            'Welcome to Dramatique',
+            'Your account was created. Please verify your email to sign in.',
+            'success',
+        );
 
         return $this->json([
             'success' => true,
